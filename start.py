@@ -27,18 +27,17 @@ class CarsModel(db.Model):
         self.plate_number = plate_number
 
     def __repr__(self):
-        return f"<Car {self.id} {self.model} {self.full_name} {self.plate_number}>"
+        return f"<Vehicle {self.id} {self.model} {self.full_name} {self.plate_number}>"
 
 
 VEHICLES = []
 
 @app.route("/", methods=['GET'])
 def hello():
-    return_string = '<b>Hey hey</b>'
-    return "<p>Hello, World!</p>" + return_string
+    return "<p>Hello, vehicles!</p>"
 
 
-@app.route('/ping/')
+@app.route('/ping/', methods=['GET'])
 def ping():
     return '{"ping": "pong"}'
 
@@ -55,9 +54,14 @@ def handle_vehicles():
             nearby_radius = float(nearby_radius)
             lng = float(lng)
             lat = float(lat)
-            found_vehicles = redis_instance.georadius('vehicles_positions', lng, lat, nearby_radius, 'm', 'WITHDIST')
-            print(found_vehicles)
-            return json.dumps(found_vehicles)
+            found_vehicles = redis_instance.georadius('vehicles_positions', lng, lat, nearby_radius, 'km', 'WITHDIST', 'WITHCOORD')
+            result = []
+            for v in found_vehicles:
+                vehicle_id = int(v[0])
+                print(vehicle_id)
+                vehicle = CarsModel.query.get_or_404(vehicle_id)
+                result.append(str(vehicle) + ' ' + str(v[1]) + ' ' + str(v[2]))
+            return json.dumps(result)
         elif target_plate_number:
             all_cars = CarsModel.query.filter_by(plate_number=target_plate_number)
 
